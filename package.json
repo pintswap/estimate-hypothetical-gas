@@ -11,7 +11,9 @@
   "license": "MIT",
   "private": false,
   "dependencies": {
-    "@ethereumjs/vm": "^6.4.2"
+    "@ethereumjs/vm": "^6.4.2",
+    "clone": "^2.1.2",
+    "ethers": "^6.5.1"
   },
   "devDependencies": {
     "@types/node": "^20.2.5",

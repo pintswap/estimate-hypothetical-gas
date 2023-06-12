@@ -1,1 +1,1 @@
-export declare function estimateHypotheticalGas(txParams: any): Promise<number>;
+export declare function mutateVMForHypotheticals(vm: any, provider: any): void;
