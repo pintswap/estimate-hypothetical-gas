@@ -4,7 +4,8 @@
   "description": "an implementation of eth_estimateGas for txs that revert now but should not later",
   "main": "lib/index.js",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test": "mocha"
   },
   "repository": "https://github.com/pintswap/estimate-hypothetical-gas",
   "author": "pintswap",
@@ -16,7 +17,10 @@
     "ethers": "^6.5.1"
   },
   "devDependencies": {
-    "@types/node": "^20.2.5",
+    "@types/node": "^20.3.0",
+    "chai": "^4.3.7",
+    "emasm": "https://github.com/kungfuflex/emasm",
+    "mocha": "^10.2.0",
     "nice-repl": "^0.1.2",
     "typescript": "^5.1.3"
   }
