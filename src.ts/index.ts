@@ -16,10 +16,21 @@ const pop = (runState: any) => {
 };
  
 
-export function mutateVMForHypotheticals(vm: any) {
+export function mutateVMForHypotheticals(vm: any, provider: any) {
   const handlers = new Map(...[vm.evm._handlers.entries()]); 
   const originalJumpi = handlers.get(OP_JUMPI);
-  const originalRevert = handlers.get(OP_REVERT);
+  vm.eei.provider = provider;
+  const storageLoad = vm.eei.storageLoad;
+  vm.eei.storageLoad = async function (address: any, key: any, original: boolean = false) {
+    if (original) return Buffer.from(ethers.toBeArray(await provider.getStorageAt(ethers.getAddress(ethers.zeroPadValue(ethers.toBeHex(address), 20)), ethers.zeroPadValue(ethers.toBeHex(key), 0x20))));
+    else return storageLoad.call(this, address, key, original);
+  };
+  vm.eei.getExternalBalance = async (address) => {
+   return Buffer.from(ethers.toBeArray(await provider.getBalance(ethers.getAddress(ethers.zeroPadValue(ethers.toBeHex(ethers.toBeArray(address)), 20)))));
+  };
+  vm.eei.getContractCode = async function (address) {
+    return Buffer.from(ethers.toBeArray(await provider.getCode(ethers.getAddress(ethers.toBeHex(ethers.toBeArray(address)))));
+  );
   handlers.set(OP_JUMPI, (runState: any) => {
     checkpoint(runState);
     return originalJumpi(runState);
