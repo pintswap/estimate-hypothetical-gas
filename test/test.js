@@ -22,9 +22,7 @@ describe('estimate-hypothetical-gas', () => {
     const from = wallet.address;
     const result = await estimateGas(provider, {
       from,
-      data,
-      gasLimit: BigInt(10e6),
-      gasPrice: (await provider.getFeeData()).maxFeePerGas
+      data
     });
     console.log(result);
   });
