@@ -65,7 +65,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
   ) {
     return Buffer.from(
       ethers.toBeArray(
-        ethers.zeroPadValue(await provider.getStorageAt(
+        ethers.zeroPadValue(await provider.getStorage(
           ethers.getAddress(address.toString()),
           ethers.hexlify(key)
         ), 0x20)
@@ -119,5 +119,5 @@ export async function estimateGas(provider: any, txParams: any) {
     tx: await makeUnsignedTransaction(provider, txParams),
     skipBalance: true,
   });
-  return block;
+  return BigInt(block.totalGasSpent);
 }

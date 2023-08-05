@@ -5,3 +5,6 @@ var wallet = ethers.Wallet.createRandom();
 var {Transaction } = require('@ethereumjs/tx');
 
 var tx = Transaction.fromTxData({ data:'0x0101', from: wallet.address, v: '', r: '', s:'' });
+var { estimateGas } = require('./');
+
+
