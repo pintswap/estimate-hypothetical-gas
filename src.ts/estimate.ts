@@ -13,9 +13,9 @@ const checkpoint = (runState: any) => {
   if (!runState._checkpoints) runState._checkpoints = [];
   const copy = clone(runState);
   delete copy._checkpoints;
-  copy.eei = runState.eei.copy();
-//  delete copy.interpreter;
-  delete copy.env.block;
+//  copy.eei = runState.eei.copy();
+  delete copy.interpreter;
+//  delete copy.env.block;
   delete copy._branching;
   runState._checkpoints.push(copy);
 };
@@ -23,17 +23,14 @@ const checkpoint = (runState: any) => {
 const numberToHex = (n: any) =>
   n.toHexString ? n.toHexString() : ethers.hexlify(ethers.toBeArray(n));
 
-const makeUnsignedTransaction = async (provider, txParams) => {
-  const gasPrice =
-    txParams.maxFeePerGas || txParams.gasPrice
-      ? undefined
-      : (await provider.getFeeData()).maxFeePerGas;
-  const gasLimit = txParams.gasLimit || BigInt(10e6);
+const makeUnsignedTransaction = (provider, txParams) => {
+  const gasLimit = txParams.gasLimit || BigInt(15e6);
+  const gasPrice = txParams.gasPrice || '0x00';
   const params = Object.assign(
     { gasPrice, gasLimit },
     { ...txParams, v: "", r: "", s: "" }
   );
-  if (!gasPrice) delete params.gasPrice;
+  if (!gasPrice) params.gasPrice = '0x00';
   else params.gasPrice = numberToHex(params.gasPrice);
   if (!gasLimit) delete params.gasLimit;
   else params.gasLimit = numberToHex(params.gasLimit);
@@ -41,6 +38,7 @@ const makeUnsignedTransaction = async (provider, txParams) => {
   const tx = Object.create(Transaction.fromTxData(params));
   const { from } = txParams;
   tx.getSenderAddress = () => addressFromHex(from);
+//  console.log({ data: '0x' + tx.data.toString('hex'), from, to: tx.to });
   return tx;
 };
 
@@ -50,6 +48,15 @@ const pop = (runState: any) => {
 };
 
 const bufferToHex = (v: Buffer) => '0x' + v.toString('hex');
+
+const logState = (tag, runState) => {
+  console.log(tag + '>>');
+  const copy = { ...runState };
+  delete copy.validJumps;
+  delete copy._checkpoints;
+  console.log(copy);
+  console.log(tag + '<<');
+};
 
 export function mutateVMForHypotheticals(vm: any, provider: any) {
   const handlers: any = new Map(...[vm.evm._handlers.entries()]);
@@ -90,6 +97,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
     );
   };
   handlers.set(OP_JUMPI, (runState: any) => {
+//    logState('JUMPI', runState);
     if (!runState._branching) {
       checkpoint(runState);
     }
@@ -98,6 +106,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
   });
   handlers.set(OP_REVERT, (runState: any) => {
     pop(runState);
+//    logState('REVERT', runState);
     const [dest, cond] = runState.stack.popN(2);
     runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
     runState.stack.push(dest);
@@ -119,8 +128,10 @@ export async function estimateGas(provider: any, txParams: any) {
   vm.DEBUG = true;
   const proxy = mutateVMForHypotheticals(vm, provider);
   const block = await proxy.runTx({
-    tx: await makeUnsignedTransaction(provider, txParams),
+    tx: makeUnsignedTransaction(provider, txParams),
+    skipNonce: true,
     skipBalance: true,
   });
+  console.log(block);
   return block.totalGasSpent;
 }
