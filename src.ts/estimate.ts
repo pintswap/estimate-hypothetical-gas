@@ -14,7 +14,7 @@ const checkpoint = (runState: any) => {
   const copy = clone(runState);
   delete copy._checkpoints;
   copy.eei = runState.eei.copy();
-  delete copy.interpreter;
+//  delete copy.interpreter;
   delete copy.env.block;
   delete copy._branching;
   runState._checkpoints.push(copy);
@@ -91,21 +91,18 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
   };
   handlers.set(OP_JUMPI, (runState: any) => {
     if (!runState._branching) {
-      const copy = { ...runState };
-      delete copy._checkpoints;
       checkpoint(runState);
     }
     runState._branching = false;
     return originalJumpi(runState);
   });
   handlers.set(OP_REVERT, (runState: any) => {
-    const copy = { ...runState };
-    delete copy._checkpoints;
     pop(runState);
-    const [cond, dest] = runState.stack.popN(2);
-    runState.stack.push(dest);
+    const [dest, cond] = runState.stack.popN(2);
     runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
+    runState.stack.push(dest);
     runState._branching = true;
+    runState.programCounter--;
   });
   proxy.evm._handlers = handlers;
   return proxy;
@@ -113,11 +110,17 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
 
 export async function estimateGas(provider: any, txParams: any) {
   const vm = await (VM as any).create();
+  const { isActivatedEIP } = vm._common;
+  vm._common.isActivatedEIP = function (...args) {
+    const [ eip ] = args;
+    if (eip === 1559) return false;
+    return isActivatedEIP.apply(vm._common, args);
+  };
   vm.DEBUG = true;
   const proxy = mutateVMForHypotheticals(vm, provider);
   const block = await proxy.runTx({
     tx: await makeUnsignedTransaction(provider, txParams),
     skipBalance: true,
   });
-  return BigInt(block.totalGasSpent);
+  return block.totalGasSpent;
 }

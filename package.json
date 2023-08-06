@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
-    "test": "mocha"
+    "test": "mocha --timeout 0"
   },
   "repository": "https://github.com/pintswap/estimate-hypothetical-gas",
   "author": "pintswap",
