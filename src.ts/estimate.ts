@@ -24,7 +24,7 @@ const numberToHex = (n: any) =>
   n.toHexString ? n.toHexString() : ethers.hexlify(ethers.toBeArray(n));
 
 const makeUnsignedTransaction = (provider, txParams) => {
-  const gasLimit = txParams.gasLimit || BigInt(15e6);
+  const gasLimit = txParams.gasLimit || BigInt(10e6);
   const gasPrice = txParams.gasPrice || '0x00';
   const params = Object.assign(
     { gasPrice, gasLimit },
@@ -133,5 +133,5 @@ export async function estimateGas(provider: any, txParams: any) {
     skipBalance: true,
   });
   console.log(block);
-  return block.totalGasSpent;
+  return block.execResult ? block.execResult.gas : block.totalGasSpent;
 }
