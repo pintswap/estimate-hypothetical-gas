@@ -147,12 +147,12 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
     );
   };
   handlers.set(OP_JUMPI, (runState: any) => {
-    logState('JUMPI', runState);
+    //logState('JUMPI', runState);
     if (!runState._branching) {
       checkpoint(runState);
     } else {
+      runState._checkpoints.pop();
       const [dest, cond] = runState.stack.popN(2);
-      console.log([ dest, cond ]);
       runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
       runState.stack.push(dest);
     }
@@ -162,7 +162,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
   handlers.set(OP_REVERT, (runState: any) => {
     pop(runState);
     runState._branching = true;
-    logState('REVERT', runState);
+    //logState('REVERT', runState);
     runState.programCounter--;
   });
   proxy.evm._handlers = handlers;
