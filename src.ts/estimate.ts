@@ -8,16 +8,64 @@ const addressFromHex = (s) => new Address(Buffer.from(ethers.toBeArray(s)));
 
 const OP_JUMPI = Number(0x57);
 const OP_REVERT = Number(0xfd);
+const copyMemory = (memory: any) => {
+  const Memory = memory.constructor;
+  const copy = new Memory();
+  copy.write(0, memory._store.length, memory._store);
+  return copy;
+};
+
+const copyStack = (stack: any) => {
+  const Stack = stack.constructor;
+  const copy = new Stack((stack as any)._maxHeight);
+  (copy as any)._store = (stack as any)._store.slice();
+  return copy;
+};
+
+const copyInterpreter = (
+  runState: any,
+) => {
+  const Interpreter = runState.interpreter.constructor;
+  const copy = new Interpreter(
+    (runState.interpreter as any)._evm,
+    runState.eei,
+    runState.env,
+    runState.gasLeft
+  );
+  return copy;
+};
+
+const copyRunState = (runState: any) => {
+  const stateManager = ((runState.stateManager || runState.eei._stateManager) as any).copy();
+  const env = runState.env;
+  const copy = {
+    programCounter: runState.programCounter,
+    opCode: runState.opCode,
+    memory: copyMemory(runState.memory),
+    memoryWordCount: runState.memoryWordCount,
+    highestMemCost: runState.highestMemCost,
+    stack: copyStack(runState.stack),
+    returnStack: copyStack(runState.returnStack),
+    code: runState.code,
+    shouldDoJumpAnalysis: runState.shouldDoJumpAnalysis,
+    validJumps: runState.validJumps,
+    eei: runState.eei,
+    env,
+    messageGasLimit: runState.messageGasLimit,
+    interpreter: copyInterpreter(runState),
+    gasRefund: runState.gasRefund,
+    gasLeft: runState.gasLeft,
+    auth: runState.auth,
+    returnBuffer: runState.returnBuffer
+  };
+  (copy.interpreter as any)._runState = copy;
+  return copy;
+};
 
 const checkpoint = (runState: any) => {
-  if (!runState._checkpoints) runState._checkpoints = [];
-  const copy = clone(runState);
-  delete copy._checkpoints;
-//  copy.eei = runState.eei.copy();
-  delete copy.interpreter;
-//  delete copy.env.block;
-  delete copy._branching;
-  runState._checkpoints.push(copy);
+  if (!(runState as any)._checkpoints) (runState as any)._checkpoints = [];
+  const copy = copyRunState(runState);
+  (runState as any)._checkpoints.push(copy);
 };
 
 const numberToHex = (n: any) =>
@@ -53,9 +101,9 @@ const bufferToHex = (v: Buffer) => '0x' + v.toString('hex');
 
 const logState = (tag, runState) => {
   console.log(tag + '>>');
-  const copy = { ...runState };
+  const copy = copyRunState(runState);
   delete copy.validJumps;
-  delete copy._checkpoints;
+  delete (copy as any)._checkpoints;
   console.log(copy);
   console.log(tag + '<<');
 };
@@ -102,17 +150,19 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
     logState('JUMPI', runState);
     if (!runState._branching) {
       checkpoint(runState);
+    } else {
+      const [dest, cond] = runState.stack.popN(2);
+      console.log([ dest, cond ]);
+      runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
+      runState.stack.push(dest);
     }
     runState._branching = false;
     return originalJumpi(runState);
   });
   handlers.set(OP_REVERT, (runState: any) => {
     pop(runState);
-    logState('REVERT', runState);
-    const [dest, cond] = runState.stack.popN(2);
-    runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
-    runState.stack.push(dest);
     runState._branching = true;
+    logState('REVERT', runState);
     runState.programCounter--;
   });
   proxy.evm._handlers = handlers;
@@ -134,5 +184,5 @@ export async function estimateGas(provider: any, txParams: any) {
     skipNonce: true,
     skipBalance: true,
   });
-  return block.execResult ? block.execResult.gas : block.totalGasSpent;
+  return block.totalGasSpent;
 }
