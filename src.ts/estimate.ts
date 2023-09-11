@@ -44,7 +44,9 @@ const makeUnsignedTransaction = (provider, txParams) => {
 
 const pop = (runState: any) => {
   if (!runState._checkpoints) runState._checkpoints = [];
-  Object.assign(runState, runState._checkpoints.pop());
+  const state = runState._checkpoints.pop();
+  delete state._checkpoints;
+  Object.assign(runState, state);
 };
 
 const bufferToHex = (v: Buffer) => '0x' + v.toString('hex');
@@ -97,7 +99,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
     );
   };
   handlers.set(OP_JUMPI, (runState: any) => {
-//    logState('JUMPI', runState);
+    logState('JUMPI', runState);
     if (!runState._branching) {
       checkpoint(runState);
     }
@@ -106,7 +108,7 @@ export function mutateVMForHypotheticals(vm: any, provider: any) {
   });
   handlers.set(OP_REVERT, (runState: any) => {
     pop(runState);
-//    logState('REVERT', runState);
+    logState('REVERT', runState);
     const [dest, cond] = runState.stack.popN(2);
     runState.stack.push(Number(cond) ? BigInt(0) : BigInt(1));
     runState.stack.push(dest);
@@ -132,6 +134,5 @@ export async function estimateGas(provider: any, txParams: any) {
     skipNonce: true,
     skipBalance: true,
   });
-  console.log(block);
   return block.execResult ? block.execResult.gas : block.totalGasSpent;
 }
