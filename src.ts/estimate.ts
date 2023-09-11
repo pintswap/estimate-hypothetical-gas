@@ -1,7 +1,5 @@
 import { ethers } from "ethers";
 import clone from "clone";
-var tx_1 = require('@ethereumjs/tx');
-tx_1.BlobEIP4844Transaction = require('ethereumjstx').BlobEIP4844Transaction;
 import { VM } from "@ethereumjs/vm";
 import { Transaction } from "@ethereumjs/tx";
 import { Address } from "@ethereumjs/util";
