@@ -75,9 +75,11 @@ const numberToHex = (n: any) =>
 const makeUnsignedTransaction = (provider, txParams) => {
   const gasLimit = txParams.gasLimit || BigInt(10e6);
   const gasPrice = txParams.gasPrice || '0x00';
+  const data = String(txParams.data);
   const params = Object.assign(
     { gasPrice, gasLimit },
-    { ...txParams, v: "", r: "", s: "" }
+    { ...txParams, v: "", r: "", s: "" },
+    { data }
   );
   if (!gasPrice) params.gasPrice = '0x00';
   else params.gasPrice = numberToHex(params.gasPrice);
